@@ -55,9 +55,8 @@ bigfont = ImageFont.truetype(
 # data = 0
 # mask = 0
 
-urlLegend = urllib.request.urlopen('https://api.met.no/weatherapi/weathericon/2.0/legends')
-legendUrl = urlLegend.read()
-legend = json.loads(legendUrl)
+response = urllib.request.urlopen('https://api.met.no/weatherapi/weathericon/2.0/legends')
+legend = json.loads(response.read().decode(response.info().get_param('charset') or 'utf-8'))
 
 def updateWeatherUrl():
     """Opens the json file from www.yr.no
@@ -68,16 +67,19 @@ def updateWeatherUrl():
     the url is updated.
     """
     # attempts = 1
+    hdr = { 'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)' }
     urlReady = False
     while not urlReady:
-        url = urllib.request.urlopen(
-            'https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=58.8474&lon=5.7166')
+        req = urllib.request.Request('https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=41.6193&lon=-0.9180', headers=hdr)
+        url = urllib.request.urlopen(req)
         # Exchange the link above with your location. 
         # Essentially you just replace the latitude and longitude with the location you want.
+        print(url.getcode())
+
         if(url.getcode() == 200):
             urlReady = True
             attempts = 1
-            dataUrl = url.read()
+            dataUrl = url.read().decode(url.info().get_param('charset') or 'utf-8')
             global data
             data = json.loads(dataUrl)
             print(('{} Weather data URL successfully opened.'
@@ -126,7 +128,11 @@ def parseJsonAndDrawToMask():
     if(iconStatus[-14:]=='_polartwilight'):
         iconStatus = iconStatus.rstrip('_polartwilight')
     currentStatus = legend[iconStatus]['desc_en']
-    rainChancePercent = stats[0]['data']['next_1_hours']['details']['probability_of_precipitation']
+
+    if 'probability_of_precipitation' in stats[0]['data']['next_1_hours']['details']:
+        rainChancePercent = stats[0]['data']['next_1_hours']['details']['probability_of_precipitation']
+    else:
+        rainChancePercent = 0
 
     conditionIcon = Image.open('icons/weatherIcons/{}.png'.format(currentIcon))
     refreshIcon = Image.open('icons/refresh.png')
@@ -141,13 +147,16 @@ def parseJsonAndDrawToMask():
 
     # Wind information
     windSpeed = stats[0]['data']['instant']['details']['wind_speed']
-    windMaxGust = stats[0]['data']['instant']['details']['wind_speed_of_gust']
-
+    if 'windMaxGust' in stats[0]['data']['instant']['details']:
+        windMaxGust = stats[0]['data']['instant']['details']['wind_speed_of_gust']
+    else:
+        windMaxGust = 0
     # Precipitation info
     rainAmount = [min(stats[i]['data']['next_1_hours']['details']['precipitation_amount'],4) for i in range(12)]
 
-    rainMaxAmount = [min(stats[i]['data']['next_1_hours']['details']['precipitation_amount_max'],4) for i in range(12)]
-    
+    #rainMaxAmount = [min(stats[i]['data']['next_1_hours']['details']['precipitation_amount_max'],4) for i in range(12)]
+    rainMaxAmount = 0
+
     # Coordinates are X, Y:
     # 0, 0 is top left of screen 176, 264 is bottom right
     # global mask
@@ -211,13 +220,14 @@ def parseJsonAndDrawToMask():
 
     # Only outline for maximum possible rain
     # rainMaxH = [239 - (max_rain*10) for max_rain in rainMaxAmount]
-    rainMaxH = map(lambda x: 239 - (x*10), rainMaxAmount)
+    #rainMaxH = map(lambda x: 239 - (x*10), rainMaxAmount)
+    rainMaxH = 0
 
-    for rain_max, interval in zip(rainMaxH,diagram_intervals):
-        draw.line((interval[0], 239, interval[0], rain_max), fill=0, width=1)
-        draw.line((interval[0], 239, interval[1], 239), fill=0, width=1)
-        draw.line((interval[1], 239, interval[1], rain_max), fill=0, width=1)
-        draw.line((interval[0], rain_max, interval[1], rain_max), fill=0, width=1)
+    #for rain_max, interval in zip(rainMaxH,diagram_intervals):
+    #    draw.line((interval[0], 239, interval[0], rain_max), fill=0, width=1)
+    #    draw.line((interval[0], 239, interval[1], 239), fill=0, width=1)
+    #    draw.line((interval[1], 239, interval[1], rain_max), fill=0, width=1)
+    #    draw.line((interval[0], rain_max, interval[1], rain_max), fill=0, width=1)
 
     mask.paste(windIcon, (0, 248))
     mask.paste(rainLine, (8, 240))

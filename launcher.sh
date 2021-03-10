@@ -4,6 +4,6 @@
 # MAKE SURE TO EDIT YOUR_FOLDER TO THE CORRECT DIRECTORY
 
 cd /
-cd home/pi/YOUR_FOLDER/weather_display
+cd home/pi/weather_display
 python3 weather_display.py
 cd /
